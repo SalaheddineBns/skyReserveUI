@@ -1,457 +1,482 @@
-import { useLocation } from "react-router-dom";
+// src/pages/FlightPage.tsx
+import { useState, useEffect } from "react";
 import {
   Box,
-  Typography,
   Container,
-  Paper,
-  Divider,
   Card,
   CardContent,
+  Typography,
+  Stepper,
+  Step,
+  StepLabel,
   Button,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  Paper,
   Grid,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Divider,
+  TextField,
+  IconButton,
 } from "@mui/material";
-import { useState } from "react";
-import FlightTakeoff from "@mui/icons-material/FlightTakeoff";
-import FlightLand from "@mui/icons-material/FlightLand";
-import Event from "@mui/icons-material/Event";
-import Euro from "@mui/icons-material/Euro";
-import ExpandMore from "@mui/icons-material/ExpandMore";
-import Person from "@mui/icons-material/Person";
+import FlightTakeoffIcon from "@mui/icons-material/FlightTakeoff";
+import FlightLandIcon from "@mui/icons-material/FlightLand";
 import LuggageIcon from "@mui/icons-material/Luggage";
+import EuroIcon from "@mui/icons-material/Euro";
+import planeBg from "../assets/images/plane-bg.jpg";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-interface BaggageOption {
-  type: "CABIN" | "SOUTE";
-  quantity: number;
-}
-
-interface PassengerInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  civilite: "Mr" | "Mme" | "Mlle";
-  baggageOptions: BaggageOption[];
-}
-
-interface FlightData {
-  flightId: number;
-  departureCity: string;
-  arrivalCity: string;
-  departureDate: string;
-  price: number;
-  availableSeats: number;
-}
-
-interface BookingRequest {
-  flightId: number;
-  seats: number;
-  passengers: PassengerInfo[];
-}
-
-const MAX_PASSENGERS = 3;
-const MAX_CABIN_BAGGAGE = 1;
-const MAX_SOUTE_BAGGAGE = 3;
+const LOCAL_STORAGE_KEY = "flightPageForm";
 
 const FlightPage = () => {
+  const [activeStep, setActiveStep] = useState(0);
   const location = useLocation();
-  const flightData = location.state?.flightData as FlightData;
-  const [numberOfPassengers, setNumberOfPassengers] = useState(
-    Math.min(location.state?.passengers || 1, MAX_PASSENGERS)
-  );
-  const [passengers, setPassengers] = useState<PassengerInfo[]>([
-    {
+  const navigate = useNavigate();
+  const flight = location.state?.flightData;
+  const initialPassengers = location.state?.passengers || 1;
+  const [numPassengers, setNumPassengers] = useState(initialPassengers);
+  const [passengerDetails, setPassengerDetails] = useState(
+    Array(initialPassengers).fill({
       firstName: "",
       lastName: "",
       email: "",
       phone: "",
-      civilite: "Mr",
-      baggageOptions: [],
-    },
-  ]);
+    })
+  );
+  const [baggageOptions, setBaggageOptions] = useState(
+    Array(initialPassengers).fill({ cabin: 0, soute: 0 })
+  );
+
+  // Chargement initial depuis le localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === "object") {
+          if (parsed.numPassengers) setNumPassengers(parsed.numPassengers);
+          if (parsed.passengerDetails)
+            setPassengerDetails(parsed.passengerDetails);
+          if (parsed.baggageOptions) setBaggageOptions(parsed.baggageOptions);
+        }
+      } catch {}
+    }
+  }, []);
+
+  // Sauvegarde automatique à chaque modification
+  useEffect(() => {
+    localStorage.setItem(
+      LOCAL_STORAGE_KEY,
+      JSON.stringify({ numPassengers, passengerDetails, baggageOptions })
+    );
+  }, [numPassengers, passengerDetails, baggageOptions]);
+
+  // Synchronise les tableaux si numPassengers change
+  useEffect(() => {
+    setPassengerDetails((prev) => {
+      if (numPassengers > prev.length) {
+        // Ajoute seulement les nouveaux passagers sans écraser les anciens
+        return [
+          ...prev,
+          ...Array(numPassengers - prev.length).fill({
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+          }),
+        ];
+      } else {
+        // Ne garde que les passagers nécessaires
+        return prev.slice(0, numPassengers);
+      }
+    });
+    setBaggageOptions((prev) => {
+      if (numPassengers > prev.length) {
+        // Ajoute seulement les nouveaux bagages sans écraser les anciens
+        return [
+          ...prev,
+          ...Array(numPassengers - prev.length).fill({ cabin: 0, soute: 0 }),
+        ];
+      } else {
+        // Ne garde que les bagages nécessaires
+        return prev.slice(0, numPassengers);
+      }
+    });
+  }, [numPassengers]);
 
   const handlePassengerChange = (
     index: number,
-    field: keyof Omit<PassengerInfo, "baggageOptions">,
+    field: string,
     value: string
   ) => {
-    const newPassengers = [...passengers];
-    newPassengers[index] = {
-      ...newPassengers[index],
-      [field]: value,
-    };
-    setPassengers(newPassengers);
+    const updated = [...passengerDetails];
+    updated[index] = { ...updated[index], [field]: value };
+    setPassengerDetails(updated);
   };
 
   const handleBaggageChange = (
     index: number,
-    baggageType: "CABIN" | "SOUTE",
+    type: "cabin" | "soute",
     value: number
   ) => {
-    const newPassengers = [...passengers];
-    const maxValue =
-      baggageType === "CABIN" ? MAX_CABIN_BAGGAGE : MAX_SOUTE_BAGGAGE;
-    const validValue = Math.min(Math.max(0, value), maxValue);
+    const updated = [...baggageOptions];
+    updated[index][type] = value;
+    setBaggageOptions(updated);
+  };
 
-    const currentPassenger = { ...newPassengers[index] };
-    const currentBaggageOptions = [...currentPassenger.baggageOptions];
-
-    const existingBaggageIndex = currentBaggageOptions.findIndex(
-      (option) => option.type === baggageType
+  const totalPrice = () => {
+    if (!flight) return 0;
+    const flightPrice = flight.price * numPassengers;
+    const baggagePrice = baggageOptions.reduce(
+      (sum, bag) => sum + bag.cabin * 25 + bag.soute * 40,
+      0
     );
-
-    if (validValue === 0 && existingBaggageIndex !== -1) {
-      currentBaggageOptions.splice(existingBaggageIndex, 1);
-    } else if (validValue > 0) {
-      if (existingBaggageIndex !== -1) {
-        currentBaggageOptions[existingBaggageIndex].quantity = validValue;
-      } else {
-        currentBaggageOptions.push({ type: baggageType, quantity: validValue });
-      }
-    }
-
-    currentPassenger.baggageOptions = currentBaggageOptions;
-    newPassengers[index] = currentPassenger;
-    setPassengers(newPassengers);
+    return flightPrice + baggagePrice;
   };
 
-  const getBaggageQuantity = (
-    passenger: PassengerInfo,
-    type: "CABIN" | "SOUTE"
-  ): number => {
-    const baggageOption = passenger.baggageOptions.find(
-      (option) => option.type === type
-    );
-    return baggageOption?.quantity || 0;
-  };
-
-  const updateNumberOfPassengers = (newNumber: number) => {
-    const validNumber = Math.min(Math.max(1, newNumber), MAX_PASSENGERS);
-    setNumberOfPassengers(validNumber);
-
-    const newPassengers = [...passengers];
-    if (validNumber > passengers.length) {
-      // Add new passengers
-      for (let i = passengers.length; i < validNumber; i++) {
-        newPassengers.push({
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          civilite: "Mr",
-          baggageOptions: [],
-        });
-      }
-    } else if (validNumber < passengers.length) {
-      // Remove extra passengers
-      newPassengers.splice(validNumber);
-    }
-    setPassengers(newPassengers);
-  };
-
-  const calculateTotalPrice = () => {
-    return flightData.price * numberOfPassengers;
-  };
-
-  const handleReservation = async () => {
-    const isAllPassengersInfoComplete = passengers
-      .slice(0, numberOfPassengers)
-      .every((p) => p.firstName && p.lastName && p.email && p.phone);
-
-    if (!isAllPassengersInfoComplete) {
-      alert("Veuillez remplir toutes les informations pour chaque passager");
-      return;
-    }
-
-    const bookingRequest: BookingRequest = {
-      flightId: flightData.flightId,
-      seats: numberOfPassengers,
-      passengers: passengers.slice(0, numberOfPassengers),
+  // Nouvelle fonction pour gérer la réservation et la redirection
+  const handleBooking = async () => {
+    if (!flight) return;
+    const bookingPayload = {
+      flightId: flight.flightId,
+      seats: numPassengers,
+      passengers: passengerDetails.map((p, idx) => ({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        email: p.email,
+        phone: p.phone,
+        civilite: "Mr", // À adapter si tu veux demander la civilité
+        baggageOptions: [
+          ...(baggageOptions[idx].cabin > 0
+            ? [{ type: "CABIN", quantity: baggageOptions[idx].cabin }]
+            : []),
+          ...(baggageOptions[idx].soute > 0
+            ? [{ type: "SOUTE", quantity: baggageOptions[idx].soute }]
+            : []),
+        ],
+      })),
     };
-
     try {
-      await axios.post("http://localhost:8083/api/bookings", bookingRequest);
-      alert("Réservation effectuée avec succès!");
-    } catch (error) {
-      console.error("Erreur lors de la réservation:", error);
-      alert("Erreur lors de la réservation");
+      const res = await axios.post(
+        "http://localhost:8083/api/bookings",
+        bookingPayload
+      );
+      const booking = res.data;
+      navigate(`/payment/${booking.bookingId}`, { state: { booking } });
+    } catch (err) {
+      alert("Erreur lors de la réservation. Veuillez réessayer.");
     }
   };
-
-  if (!flightData) {
-    return (
-      <Container maxWidth="md">
-        <Box sx={{ mt: 4, textAlign: "center" }}>
-          <Typography variant="h5">Vol non trouvé</Typography>
-        </Box>
-      </Container>
-    );
-  }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4, mb: 4 }}>
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{ textAlign: "center", mb: 4 }}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url(${planeBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        py: 5,
+      }}
+    >
+      <Container maxWidth="md">
+        {/* Affichage des détails du vol sélectionné */}
+        {flight && (
+          <Card
+            elevation={4}
+            sx={{
+              mb: 4,
+              background: "rgba(255,255,255,0.95)",
+              borderRadius: 3,
+            }}
+          >
+            <CardContent>
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Vol n° {flight.flightNumber}
+              </Typography>
+              <Typography>
+                {flight.origin} → {flight.destination}
+              </Typography>
+              <Typography>Date : {flight.departureDate}</Typography>
+              <Typography>Départ : {flight.departureTime}</Typography>
+              <Typography>Arrivée : {flight.arrivalTime}</Typography>
+              <Typography>
+                Places disponibles : {flight.availableSeats}
+              </Typography>
+              <Typography sx={{ fontWeight: "bold", mt: 1 }}>
+                Prix vol seul : {flight.price * numPassengers} €
+              </Typography>
+              <Typography
+                sx={{ fontWeight: "bold", mt: 1, color: "primary.main" }}
+              >
+                Prix total (vol + bagages) : {totalPrice()} €
+              </Typography>
+            </CardContent>
+          </Card>
+        )}
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+          {["Détails du vol", "Bagages", "Récapitulatif"].map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        <Card
+          elevation={5}
+          sx={{
+            background: "rgba(255,255,255,0.95)",
+            backdropFilter: "blur(10px)",
+            borderRadius: 3,
+          }}
         >
-          Détails du Vol
-        </Typography>
-
-        <Card elevation={3}>
           <CardContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              {/* Vol Info Section */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  backgroundColor: "primary.light",
-                  color: "white",
-                  borderRadius: 2,
-                }}
-              >
-                <Typography variant="h5" sx={{ textAlign: "center" }}>
-                  Vol #{flightData.flightId}
+            {/* Step 0: Détails du vol */}
+            {activeStep === 0 && (
+              <Box>
+                <Typography variant="h5" sx={{ mb: 3 }}>
+                  Détails du vol
                 </Typography>
-              </Paper>
-
-              {/* Trajet */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 2,
-                }}
-              >
-                <Box sx={{ textAlign: "center" }}>
-                  <FlightTakeoff sx={{ fontSize: 40, color: "primary.main" }} />
-                  <Typography variant="h6">
-                    {flightData.departureCity}
-                  </Typography>
-                </Box>
-
-                <Divider orientation="horizontal" flexItem sx={{ mx: 2 }} />
-
-                <Box sx={{ textAlign: "center" }}>
-                  <FlightLand sx={{ fontSize: 40, color: "primary.main" }} />
-                  <Typography variant="h6">{flightData.arrivalCity}</Typography>
-                </Box>
+                <TextField
+                  label="Nombre de passagers"
+                  type="number"
+                  value={numPassengers}
+                  onChange={(e) => {
+                    const value = Math.max(1, Math.min(3, +e.target.value));
+                    setNumPassengers(value);
+                  }}
+                  fullWidth
+                  sx={{ mb: 3 }}
+                />
+                {passengerDetails.map((passenger, index) => (
+                  <Paper key={index} sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      Passager {index + 1} : {passenger.firstName}{" "}
+                      {passenger.lastName}
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Prénom"
+                          fullWidth
+                          value={passenger.firstName}
+                          onChange={(e) =>
+                            handlePassengerChange(
+                              index,
+                              "firstName",
+                              e.target.value
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Nom"
+                          fullWidth
+                          value={passenger.lastName}
+                          onChange={(e) =>
+                            handlePassengerChange(
+                              index,
+                              "lastName",
+                              e.target.value
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Email"
+                          fullWidth
+                          value={passenger.email}
+                          onChange={(e) =>
+                            handlePassengerChange(
+                              index,
+                              "email",
+                              e.target.value
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          label="Téléphone"
+                          fullWidth
+                          value={passenger.phone}
+                          onChange={(e) =>
+                            handlePassengerChange(
+                              index,
+                              "phone",
+                              e.target.value
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                ))}
+                <Button
+                  variant="contained"
+                  fullWidth
+                  sx={{ mt: 3 }}
+                  onClick={() => setActiveStep(1)}
+                >
+                  Suivant
+                </Button>
               </Box>
+            )}
 
-              {/* Nombre de passagers */}
-              <TextField
-                fullWidth
-                type="number"
-                label="Nombre de passagers"
-                value={numberOfPassengers}
-                onChange={(e) =>
-                  updateNumberOfPassengers(Number(e.target.value))
-                }
-                inputProps={{ min: 1, max: MAX_PASSENGERS }}
-                helperText={`Maximum ${MAX_PASSENGERS} passagers`}
-              />
-
-              {/* Informations des passagers */}
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="h6" gutterBottom>
-                  Informations des passagers
+            {/* Step 1: Bagages */}
+            {activeStep === 1 && (
+              <Box>
+                <Typography variant="h5" sx={{ mb: 3 }}>
+                  Bagages
                 </Typography>
-                {passengers
-                  .slice(0, numberOfPassengers)
-                  .map((passenger, index) => (
-                    <Accordion key={index} defaultExpanded={index === 0}>
-                      <AccordionSummary expandIcon={<ExpandMore />}>
+                {baggageOptions.map((bag, index) => (
+                  <Paper key={index} sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                      {passengerDetails[index]?.firstName}{" "}
+                      {passengerDetails[index]?.lastName}
+                    </Typography>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={6}>
                         <Box
                           sx={{ display: "flex", alignItems: "center", gap: 1 }}
                         >
-                          <Person />
-                          <Typography>
-                            Passager {index + 1}
-                            {passenger.firstName && passenger.lastName
-                              ? ` - ${passenger.firstName} ${passenger.lastName}`
-                              : ""}
+                          <TextField
+                            label="Bagage cabine"
+                            type="number"
+                            fullWidth
+                            inputProps={{ min: 0, max: 1 }}
+                            value={bag.cabin}
+                            onChange={(e) =>
+                              handleBaggageChange(
+                                index,
+                                "cabin",
+                                Math.min(1, Math.max(0, +e.target.value))
+                              )
+                            }
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            (25€)
                           </Typography>
                         </Box>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth>
-                              <InputLabel>Civilité</InputLabel>
-                              <Select
-                                value={passenger.civilite}
-                                label="Civilité"
-                                onChange={(e) =>
-                                  handlePassengerChange(
-                                    index,
-                                    "civilite",
-                                    e.target.value as "Mr" | "Mme" | "Mlle"
-                                  )
-                                }
-                              >
-                                <MenuItem value="Mr">Monsieur</MenuItem>
-                                <MenuItem value="Mme">Madame</MenuItem>
-                                <MenuItem value="Mlle">Mademoiselle</MenuItem>
-                              </Select>
-                            </FormControl>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Prénom"
-                              value={passenger.firstName}
-                              onChange={(e) =>
-                                handlePassengerChange(
-                                  index,
-                                  "firstName",
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Nom"
-                              value={passenger.lastName}
-                              onChange={(e) =>
-                                handlePassengerChange(
-                                  index,
-                                  "lastName",
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Email"
-                              type="email"
-                              value={passenger.email}
-                              onChange={(e) =>
-                                handlePassengerChange(
-                                  index,
-                                  "email",
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              label="Téléphone"
-                              value={passenger.phone}
-                              onChange={(e) =>
-                                handlePassengerChange(
-                                  index,
-                                  "phone",
-                                  e.target.value
-                                )
-                              }
-                              required
-                            />
-                          </Grid>
-
-                          {/* Bagages du passager */}
-                          <Grid item xs={12}>
-                            <Box sx={{ mt: 2, mb: 1 }}>
-                              <Typography
-                                variant="subtitle1"
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                }}
-                              >
-                                <LuggageIcon />
-                                Bagages
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              type="number"
-                              label="Bagage cabine"
-                              value={getBaggageQuantity(passengers[index], "CABIN")}
-                              onChange={(e) =>
-                                handleBaggageChange(index, "CABIN", Number(e.target.value))
-                              }
-                              inputProps={{ min: 0, max: MAX_CABIN_BAGGAGE }}
-                              helperText={`Maximum ${MAX_CABIN_BAGGAGE} bagage cabine`}
-                            />
-                          </Grid>
-                          <Grid item xs={12} sm={6}>
-                            <TextField
-                              fullWidth
-                              type="number"
-                              label="Bagages en soute"
-                              value={getBaggageQuantity(passengers[index], "SOUTE")}
-                              onChange={(e) =>
-                                handleBaggageChange(index, "SOUTE", Number(e.target.value))
-                              }
-                              inputProps={{ min: 0, max: MAX_SOUTE_BAGGAGE }}
-                              helperText={`Maximum ${MAX_SOUTE_BAGGAGE} bagages en soute`}
-                            />
-                          </Grid>
-                        </Grid>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
-              </Box>
-
-              {/* Prix et Réservation */}
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  backgroundColor: "grey.100",
-                  p: 3,
-                  borderRadius: 2,
-                  mt: 2,
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Euro color="primary" />
-                  <Typography variant="h5">
-                    {calculateTotalPrice()} € ({flightData.price} € ×{" "}
-                    {numberOfPassengers} passagers)
-                  </Typography>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <TextField
+                            label="Bagages soute"
+                            type="number"
+                            fullWidth
+                            inputProps={{ min: 0, max: 2 }}
+                            value={bag.soute}
+                            onChange={(e) =>
+                              handleBaggageChange(
+                                index,
+                                "soute",
+                                Math.min(2, Math.max(0, +e.target.value))
+                              )
+                            }
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          <Typography
+                            variant="body2"
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            (40€/unité)
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                ))}
+                <Typography variant="h6" sx={{ mt: 2, textAlign: "right" }}>
+                  Total: {totalPrice()} €
+                </Typography>
+                <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => setActiveStep(0)}
+                  >
+                    Précédent
+                  </Button>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    onClick={() => setActiveStep(2)}
+                  >
+                    Suivant
+                  </Button>
                 </Box>
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleReservation}
+              </Box>
+            )}
+
+            {/* Step 2: Récapitulatif */}
+            {activeStep === 2 && (
+              <Box>
+                <Typography variant="h5" sx={{ mb: 3 }}>
+                  Récapitulatif
+                </Typography>
+                {passengerDetails.map((p, index) => (
+                  <Paper key={index} sx={{ p: 2, mb: 2 }}>
+                    <Typography>
+                      {p.firstName} {p.lastName} - {p.email} - {p.phone}
+                    </Typography>
+                    <Typography>
+                      Bagage cabine: {baggageOptions[index].cabin} (x25€),
+                      Soute: {baggageOptions[index].soute} (x40€)
+                    </Typography>
+                  </Paper>
+                ))}
+                <Divider sx={{ my: 2 }} />
+                <Box
                   sx={{
-                    minWidth: 200,
-                    fontSize: "1.1rem",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
                   }}
                 >
-                  Réserver
-                </Button>
+                  <Typography variant="h6">Total: {totalPrice()} €</Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    onClick={handleBooking}
+                  >
+                    Passer au paiement
+                  </Button>
+                </Box>
+                <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => setActiveStep(1)}
+                  >
+                    Précédent
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    onClick={handleBooking}
+                  >
+                    Passer au paiement
+                  </Button>
+                </Box>
               </Box>
-            </Box>
+            )}
           </CardContent>
         </Card>
-      </Box>
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
