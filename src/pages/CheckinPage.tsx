@@ -13,7 +13,7 @@ const CheckinPage = () => {
   const [bookingId, setBookingId] = useState("");
   const [booking, setBooking] = useState(null);
   const [seats, setSeats] = useState([]);
-  const [selectedSeat, setSelectedSeat] = useState("");
+  const [passengerSeats, setPassengerSeats] = useState({});
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,17 +23,18 @@ const CheckinPage = () => {
         `http://localhost:8080/api/bookings/${bookingId}`
       );
       setBooking(bookingRes.data);
-      console.log(bookingRes);
+
       const seatRes = await axios.get("http://localhost:8080/api/inventory");
       const flightInventory = seatRes.data.find(
-        (inv: any) => inv.flightId === bookingRes.data.flightId
+        (inv) => inv.flightId === bookingRes.data.flightId
       );
 
-      const availableSeats = flightInventory.seats.filter(
-        (seat: any) => seat.available
+      const availableSeats = flightInventory?.seats.filter(
+        (seat) => seat.available
       );
 
-      setSeats(availableSeats);
+      setSeats(availableSeats || []);
+      setPassengerSeats({});
       setError("");
     } catch (err) {
       setError("Erreur de récupération des données.");
@@ -42,17 +43,40 @@ const CheckinPage = () => {
     }
   };
 
+  const handleSeatChange = (passengerId, seatNumber) => {
+    setPassengerSeats((prev) => ({
+      ...prev,
+      [passengerId]: seatNumber,
+    }));
+  };
+
   const handleCheckin = async () => {
     try {
-      await axios.post("http://localhost:8084/api/checkin", {
-        bookingId: booking.bookingId,
-        passengerId: booking.passengers?.[0]?.id ?? 1,
-        seatNumber: selectedSeat,
+      const requests = booking.passengers.map((passenger) => {
+        const seatNumber = passengerSeats[passenger.passengerId];
+        if (!seatNumber) return null;
+
+        return axios.post("http://localhost:8080/api/checkin", {
+          bookingId: booking.bookingId,
+          passengerId: passenger.passengerId,
+          seatNumber,
+        });
       });
+
+      await Promise.all(requests.filter(Boolean));
+
       setSuccess(true);
       setError("");
     } catch (err) {
-      setError("Échec du check-in.");
+      if (err.response && err.response.data) {
+        const backendMessage =
+          typeof err.response.data === "string"
+            ? err.response.data
+            : err.response.data.message || JSON.stringify(err.response.data);
+        setError(backendMessage);
+      } else {
+        setError("Échec du check-in.");
+      }
     }
   };
 
@@ -79,29 +103,37 @@ const CheckinPage = () => {
             Réservation au nom de {booking.firstName} {booking.lastName}
           </Typography>
 
-          <TextField
-            select
-            label="Choisissez un siège"
-            value={selectedSeat}
-            onChange={(e) => setSelectedSeat(e.target.value)}
-            fullWidth
-            sx={{ mt: 2 }}
-          >
-            {seats.map((seat) => (
-              <MenuItem key={seat.id} value={seat.seatNumber}>
-                {seat.seatNumber}
-              </MenuItem>
-            ))}
-          </TextField>
+          {booking.passengers.map((passenger) => (
+            <Box key={passenger.passengerId} sx={{ mt: 2 }}>
+              <Typography>
+                👤 {passenger.firstName} {passenger.lastName}
+              </Typography>
+              <TextField
+                select
+                label="Choisissez un siège"
+                value={passengerSeats[passenger.passengerId] || ""}
+                onChange={(e) =>
+                  handleSeatChange(passenger.passengerId, e.target.value)
+                }
+                fullWidth
+                sx={{ mt: 1 }}
+              >
+                {seats.map((seat) => (
+                  <MenuItem key={seat.id} value={seat.seatNumber}>
+                    {seat.seatNumber}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Box>
+          ))}
 
           <Button
             variant="contained"
             color="success"
             onClick={handleCheckin}
-            sx={{ mt: 2 }}
-            disabled={!selectedSeat}
+            sx={{ mt: 3 }}
           >
-            Confirmer le check-in
+            Confirmer le check-in pour tous
           </Button>
         </>
       )}
