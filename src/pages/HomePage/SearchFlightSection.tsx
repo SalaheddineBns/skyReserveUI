@@ -58,7 +58,7 @@ export const SearchFlightSection = () => {
     const fetchFlights = async () => {
       try {
         const response = await axios.get<Flight[]>(
-          "http://localhost:8080/flights"
+          "http://localhost:8081/flights"
         );
         const uniqueDepartures = [
           ...new Set(response.data.map((flight) => flight.origin)),
@@ -101,7 +101,7 @@ export const SearchFlightSection = () => {
     localStorage.setItem("searchFormData", JSON.stringify(formData));
     try {
       const response = await axios.get<Flight[]>(
-        "http://localhost:8080/flights/search",
+        "http://localhost:8081/flights/search",
         {
           params: {
             origin: formData.origin,
@@ -206,7 +206,7 @@ export const SearchFlightSection = () => {
                     fullWidth
                     select
                     label="Ville d'arrivé"
-                    name="destination"
+                    name="arrivalCity"
                     value={formData.arrivalCity}
                     onChange={handleChange}
                   >

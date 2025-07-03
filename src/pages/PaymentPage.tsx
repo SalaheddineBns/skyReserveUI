@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
   Card,
@@ -7,10 +7,57 @@ import {
   Divider,
   Button,
 } from "@mui/material";
+import { useState } from "react";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import axios from "axios";
 
 const PaymentPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const booking = location.state?.booking;
+
+  const [open, setOpen] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handlePayment = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      // Simuler un appel API pour le paiement
+      const response = await axios.post(`http://localhost:8080/api/payments`, {
+        bookingId: booking.bookingId,
+      });
+      console.log(response);
+      if (response.data.status == "SUCCESS") {
+        setSuccess(true);
+        setTimeout(() => {
+          // Rediriger vers la page de confirmation avec les détails de la réservation
+          navigate("/confirmation", {
+            state: {
+              booking: {
+                ...booking,
+                status: "PAID",
+                paymentDate: new Date().toISOString(),
+              },
+            },
+          });
+        }, 2000);
+      } else {
+        setError("Erreur lors du paiement. Veuillez réessayer.");
+      }
+    } catch (error) {
+      console.error("Erreur de paiement:", error);
+      setError("Erreur lors du paiement. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!booking) {
     return (
@@ -50,7 +97,7 @@ const PaymentPage = () => {
             <b>Vol n°:</b> {booking.flightId}
           </Typography>
           <Typography>
-            <b>Nombre de passagers:</b> {booking.seats}
+            <b>Nombre de passagers:</b> {booking.passengers.length}
           </Typography>
           <Typography>
             <b>Nom:</b> {booking.firstName} {booking.lastName}
@@ -76,9 +123,54 @@ const PaymentPage = () => {
           <Typography sx={{ mt: 1, color: "orange" }}>
             Statut : {booking.status}
           </Typography>
-          <Button variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            fullWidth
+            sx={{ mt: 3 }}
+            onClick={() => setOpen(true)}
+          >
             Procéder au paiement
           </Button>
+
+          <Dialog
+            open={open}
+            onClose={() => setOpen(false)}
+            maxWidth="sm"
+            fullWidth
+          >
+            <DialogTitle>Confirmer le paiement</DialogTitle>
+            <DialogContent>
+              <Typography sx={{ mb: 2 }}>
+                Montant à payer : <strong>{booking.totalPrice} €</strong>
+              </Typography>
+              {error && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                  {error}
+                </Typography>
+              )}
+              {success && (
+                <Typography color="success.main" sx={{ mb: 2 }}>
+                  Paiement effectué avec succès ! Redirection en cours...
+                </Typography>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => setOpen(false)}
+                disabled={loading || success}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={handlePayment}
+                variant="contained"
+                disabled={loading || success}
+              >
+                {loading ? "Traitement..." : "Confirmer le paiement"}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </CardContent>
       </Card>
     </Box>

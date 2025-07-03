@@ -160,6 +160,7 @@ const FlightPage = () => {
         bookingPayload
       );
       const booking = res.data;
+      console.log(booking);
       navigate(`/payment/${booking.bookingId}`, { state: { booking } });
     } catch (err) {
       alert("Erreur lors de la réservation. Veuillez réessayer.");
