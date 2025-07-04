@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { Box, Button, Container } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import Navbar from "./Navbar";
 import { SearchFlightSection } from "./SearchFlightSection";
 import { LoginModal } from "./LoginModal";
 import planeBg from "../../assets/images/plane-bg.jpg";
-import { useNavigate } from "react-router";
 
 const HomePage = () => {
   const [openLoginModal, setOpenLoginModal] = useState(false);
-  const navigate = useNavigate(); // pour la redirection
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -31,15 +29,6 @@ const HomePage = () => {
       >
         <Container maxWidth="md">
           <SearchFlightSection />
-          {/* ✅ Bouton Check-in ajouté ici */}
-          <Button
-            variant="contained"
-            color="secondary"
-            sx={{ mt: 4 }}
-            onClick={() => navigate("/checkin")}
-          >
-            Faire le check-in
-          </Button>
         </Container>
       </Box>
 

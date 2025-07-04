@@ -27,6 +27,10 @@ const router = createBrowserRouter([
     path: "/admin", // ✅ Ajoute cette ligne
     element: <AdminPage />,
   },
+  {
+    path: "/checkin", // ✅ Ajoute cette ligne
+    element: <CheckinPage />,
+  },
 ]);
 
 export default router;

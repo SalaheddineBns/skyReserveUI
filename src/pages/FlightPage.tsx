@@ -341,9 +341,16 @@ const FlightPage = () => {
                       {passengerDetails[index]?.lastName}
                     </Typography>
                     <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} md={6}>
                         <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            p: 2,
+                            bgcolor: "background.default",
+                            borderRadius: 1,
+                          }}
                         >
                           <TextField
                             label="Bagage cabine"
@@ -359,18 +366,36 @@ const FlightPage = () => {
                               )
                             }
                             InputLabelProps={{ shrink: true }}
+                            sx={{
+                              minWidth: "200px",
+                              "& .MuiInputLabel-root": {
+                                fontSize: "1rem",
+                                whiteSpace: "nowrap",
+                              },
+                            }}
                           />
                           <Typography
-                            variant="body2"
-                            sx={{ whiteSpace: "nowrap" }}
+                            variant="body1"
+                            sx={{
+                              whiteSpace: "nowrap",
+                              minWidth: "60px",
+                              fontWeight: "medium",
+                            }}
                           >
                             (25€)
                           </Typography>
                         </Box>
                       </Grid>
-                      <Grid item xs={12} sm={6}>
+                      <Grid item xs={12} md={6}>
                         <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            p: 2,
+                            bgcolor: "background.default",
+                            borderRadius: 1,
+                          }}
                         >
                           <TextField
                             label="Bagages soute"
@@ -386,10 +411,21 @@ const FlightPage = () => {
                               )
                             }
                             InputLabelProps={{ shrink: true }}
+                            sx={{
+                              minWidth: "200px",
+                              "& .MuiInputLabel-root": {
+                                fontSize: "1rem",
+                                whiteSpace: "nowrap",
+                              },
+                            }}
                           />
                           <Typography
-                            variant="body2"
-                            sx={{ whiteSpace: "nowrap" }}
+                            variant="body1"
+                            sx={{
+                              whiteSpace: "nowrap",
+                              minWidth: "80px",
+                              fontWeight: "medium",
+                            }}
                           >
                             (40€/unité)
                           </Typography>
@@ -438,23 +474,9 @@ const FlightPage = () => {
                   </Paper>
                 ))}
                 <Divider sx={{ my: 2 }} />
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Typography variant="h6">Total: {totalPrice()} €</Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleBooking}
-                  >
-                    Passer au paiement
-                  </Button>
-                </Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Total: {totalPrice()} €
+                </Typography>
                 <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
                   <Button
                     variant="outlined"

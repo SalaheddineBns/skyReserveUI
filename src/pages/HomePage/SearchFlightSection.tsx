@@ -169,7 +169,7 @@ export const SearchFlightSection = () => {
             onSubmit={handleSubmit}
             sx={{ display: "flex", flexDirection: "column", gap: 3 }}
           >
-            <Grid container spacing={3}>
+            <Grid container spacing={6}>
               {/* Ligne 1: Départ + Destination */}
               <Grid item xs={12} md={6}>
                 <Paper elevation={2} sx={paperStyle}>
@@ -219,7 +219,7 @@ export const SearchFlightSection = () => {
                 </Paper>
               </Grid>
             </Grid>
-            <Grid container spacing={3}>
+            <Grid container spacing={6}>
               {/* Ligne 2: Date + Passagers */}
               <Grid item xs={12} md={6}>
                 <Paper elevation={2} sx={paperStyle}>
