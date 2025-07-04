@@ -4,6 +4,7 @@ import FlightPage from "./pages/FlightPage";
 import PaymentPage from "./pages/PaymentPage";
 import ConfirmationPage from "./pages/ConfirmationPage";
 import CheckinPage from "./pages/CheckinPage";
+import AdminPage from "./pages/AdminPage";
 
 const router = createBrowserRouter([
   {
@@ -23,8 +24,8 @@ const router = createBrowserRouter([
     element: <ConfirmationPage />,
   },
   {
-    path: "/checkin",
-    element: <CheckinPage />,
+    path: "/admin", // ✅ Ajoute cette ligne
+    element: <AdminPage />,
   },
 ]);
 

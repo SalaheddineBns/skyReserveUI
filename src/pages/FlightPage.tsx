@@ -156,7 +156,7 @@ const FlightPage = () => {
     };
     try {
       const res = await axios.post(
-        "http://localhost:8083/api/bookings",
+        "http://localhost:8080/api/bookings",
         bookingPayload
       );
       const booking = res.data;
