@@ -1,6 +1,13 @@
 // src/components/Navbar.tsx
 
-import { AppBar, Toolbar, Typography, IconButton, Button, Box } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Button,
+  Box,
+} from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenLoginModal }) => {
             color: theme.palette.primary.main,
             fontWeight: "bold",
             textShadow: "1px 1px 2px rgba(0,0,0,0.1)",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
           onClick={() => navigate("/")}
         >
@@ -39,11 +46,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenLoginModal }) => {
             sx={{
               color: "white",
               borderColor: "white",
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                borderColor: 'white'
-              }
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                borderColor: "white",
+              },
             }}
             onClick={() => navigate("/checkin")}
           >
