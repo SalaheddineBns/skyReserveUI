@@ -6,8 +6,22 @@ import {
   Button,
   MenuItem,
   Alert,
+  Paper,
 } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
 import axios from "axios";
+import jsPDF from "jspdf";
+
+interface BoardingPass {
+  checkinId: string;
+  bookingId: string;
+  seatNumber: string;
+  boardingPassNumber: string;
+  checkinTime: string;
+  firstName: string;
+  lastName: string;
+  passengerId: number;
+}
 
 const CheckinPage = () => {
   const [bookingId, setBookingId] = useState("");
@@ -16,6 +30,7 @@ const CheckinPage = () => {
   const [passengerSeats, setPassengerSeats] = useState({});
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [boardingPasses, setBoardingPasses] = useState<BoardingPass[]>([]);
 
   const handleFetchData = async () => {
     try {
@@ -43,11 +58,62 @@ const CheckinPage = () => {
     }
   };
 
-  const handleSeatChange = (passengerId, seatNumber) => {
+  const handleSeatChange = (passengerId: string, seatNumber: string) => {
     setPassengerSeats((prev) => ({
       ...prev,
       [passengerId]: seatNumber,
     }));
+  };
+
+  const generateBoardingPass = (boardingPass: BoardingPass) => {
+    const doc = new jsPDF();
+
+    // Ajouter le titre
+    doc.setFontSize(22);
+    doc.text("Boarding Pass", 105, 20, { align: "center" });
+
+    // Ajouter une ligne de séparation
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
+
+    // Informations du passager
+    doc.setFontSize(14);
+    doc.text("Passenger Information", 20, 40);
+    doc.setFontSize(12);
+    doc.text(
+      `Name: ${boardingPass.firstName} ${boardingPass.lastName}`,
+      20,
+      55
+    );
+    doc.text(`Seat: ${boardingPass.seatNumber}`, 20, 65);
+    doc.text(
+      `Boarding Pass #: ${boardingPass.boardingPassNumber}`,
+      20,
+      75
+    );
+    doc.text(
+      `Check-in Time: ${new Date(boardingPass.checkinTime).toLocaleString()}`,
+      20,
+      85
+    );
+    doc.text(`Booking ID: ${boardingPass.bookingId}`, 20, 95);
+
+    // QR Code simulation (juste un carré pour l'exemple)
+    doc.rect(150, 40, 40, 40);
+    doc.setFontSize(8);
+    doc.text("Scan QR Code", 150, 90);
+
+    // Footer
+    doc.setFontSize(10);
+    doc.text(
+      "SkyReserve - Your Trusted Airline Partner",
+      105,
+      280,
+      { align: "center" }
+    );
+
+    // Sauvegarder le PDF
+    doc.save(`boarding-pass-${boardingPass.boardingPassNumber}.pdf`);
   };
 
   const handleCheckin = async () => {
@@ -63,8 +129,9 @@ const CheckinPage = () => {
         });
       });
 
-      await Promise.all(requests.filter(Boolean));
-
+      const responses = await Promise.all(requests.filter(Boolean));
+      const boardingPassesData = responses.map((response) => response.data);
+      setBoardingPasses(boardingPassesData);
       setSuccess(true);
       setError("");
     } catch (err) {
@@ -139,10 +206,47 @@ const CheckinPage = () => {
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mt: 3 }}>
-          ✅ Check-in effectué avec succès !
-        </Alert>
+        <Box sx={{ mt: 3 }}>
+          <Alert severity="success" sx={{ mb: 2 }}>
+            ✅ Check-in effectué avec succès !
+          </Alert>
+          {boardingPasses.map((boardingPass) => (
+            <Paper key={boardingPass.checkinId} sx={{ p: 2, mb: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: "bold" }}
+                  >
+                    {boardingPass.firstName} {boardingPass.lastName}
+                  </Typography>
+                  <Typography>
+                    Siège: {boardingPass.seatNumber}
+                  </Typography>
+                  <Typography>
+                    Boarding Pass #: {boardingPass.boardingPassNumber}
+                  </Typography>
+                </Box>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => generateBoardingPass(boardingPass)}
+                >
+                  Télécharger
+                </Button>
+              </Box>
+            </Paper>
+          ))}
+        </Box>
       )}
+
       {error && (
         <Alert severity="error" sx={{ mt: 3 }}>
           {error}
