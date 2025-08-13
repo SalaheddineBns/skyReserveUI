@@ -52,3 +52,11 @@ export default tseslint.config({
   },
 })
 ```
+
+## Description  
+
+This project is the frontend of **SkyReserve**, providing user interfaces for managing flights.  
+It includes two distinct profiles:  
+
+- **Admin** – for managing flights, schedules, and system configurations.  
+- **User** – for browsing, booking, and managing flight reservations.  
