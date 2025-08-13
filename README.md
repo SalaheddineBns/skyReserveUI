@@ -1,62 +1,72 @@
-# React + TypeScript + Vite
+# Description  
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is the **frontend** of **SkyReserve**, offering user-friendly interfaces for managing flights.  
+It supports two distinct user profiles:  
 
-Currently, two official plugins are available:
+- **Admin** – manage flights, schedules, and system configurations.  
+- **Passenger** – browse, book, and manage flight reservations.  
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+# Run Project  
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Ensure **Node.js v22** is installed on your machine.  
+2. Run `npm install` to install all dependencies.  
+3. Make sure the **SkyReserve backend** is running before starting the frontend.  
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+# Passenger Interface  
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Home Page  
+- Displays the list of available flights filtered by date, departure city, and arrival city.  
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+<img width="1881" height="1011" alt="image" src="https://github.com/user-attachments/assets/e25387e0-be38-432d-a40d-6dead686895a" />
 
-## Description  
+## Flight Page  
+- Shows details of the selected flight and its price.  
+- Contains passenger information forms, including:  
+  - First Name  
+  - Last Name  
+  - Email  
+  - Phone Number  
+  - Baggage Information  
+- Displays a summary of all passenger details before proceeding.  
 
-This project is the frontend of **SkyReserve**, providing user interfaces for managing flights.  
-It includes two distinct profiles:  
+<img width="1881" height="1011" alt="image" src="https://github.com/user-attachments/assets/69e06582-90bb-4436-b1d4-68ddd1bd4ee2" />  
+<img width="1881" height="1011" alt="image" src="https://github.com/user-attachments/assets/5476afd6-0331-4445-b085-13077ddd89ab" />  
+<img width="1881" height="1011" alt="image" src="https://github.com/user-attachments/assets/74b092b8-ad01-41fa-81d4-c5b46cb12480" />
 
-- **Admin** – for managing flights, schedules, and system configurations.  
-- **User** – for browsing, booking, and managing flight reservations.  
+## Payment Page  
+- Displays reservation details.  
+- Initiates the payment process.  
+
+<img width="1881" height="1011" alt="image" src="https://github.com/user-attachments/assets/58313fa4-1c12-4112-9b03-19d76ccc2580" />
+
+## Confirmation Page  
+- Shows the PDF bill as proof of reservation.  
+- Sends a confirmation email to the passenger.  
+
+<img width="1881" height="1014" alt="image" src="https://github.com/user-attachments/assets/873d24de-ad15-4271-a10c-c524c3658ef5" />
+
+## Check-in Page  
+- Allows passengers to check in for a reservation by entering the booking ID.  
+- Only available for flights departing in less than 48 hours.  
+- Displays passenger details and a button to confirm check-in.  
+
+<img width="1881" height="1014" alt="image" src="https://github.com/user-attachments/assets/754a2acf-2e5c-4c59-a715-c192fdcc84af" />  
+<img width="1881" height="1014" alt="image" src="https://github.com/user-attachments/assets/d12aca32-9e6d-4b4e-b27f-219525332d28" />  
+
+---
+
+# Admin Interface  
+
+- Requires authentication before access.  
+
+<img width="1881" height="1014" alt="image" src="https://github.com/user-attachments/assets/2aafb009-09ce-4ed4-ba6f-07163d81c36e" />  
+
+- Once logged in, admins can manage flights:  
+  - Add new flights  
+  - Delete existing flights  
+
+<img width="1881" height="1014" alt="image" src="https://github.com/user-attachments/assets/7006e8c0-3f48-4707-a3d7-ff9359b9efec" />
